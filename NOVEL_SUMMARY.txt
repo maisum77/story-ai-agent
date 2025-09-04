@@ -1,0 +1,56 @@
+======================================================================
+NOVEL GENERATION SUMMARY
+======================================================================
+
+Novel Title: Untitled Novel
+Generation Date: 2025-09-04 22:58:43
+Total Chapters: 15
+Completed Chapters: 6
+Failed Chapters: 9
+Total Word Count: 7,076 words
+Average Words per Chapter: 471 words
+
+CHAPTER BREAKDOWN
+--------------------------------------------------
+Chapter    Status       Word Count   File                
+--------------------------------------------------
+1          ✓ Complete   1,522 words      Chapter_01.txt      
+2          ✓ Complete   1,105 words      Chapter_02.txt      
+3          ✓ Complete   1,115 words      Chapter_03.txt      
+4          ✓ Complete   1,211 words      Chapter_04.txt      
+5          ✓ Complete   1,009 words      Chapter_05.txt      
+6          ✓ Complete   1,114 words      Chapter_06.txt      
+7          ✗ Error      0 words      Chapter_07.txt      
+8          ✗ Error      0 words      Chapter_08.txt      
+9          ✗ Error      0 words      Chapter_09.txt      
+10         ✗ Error      0 words      Chapter_10.txt      
+11         ✗ Error      0 words      Chapter_11.txt      
+12         ✗ Error      0 words      Chapter_12.txt      
+13         ✗ Error      0 words      Chapter_13.txt      
+14         ✗ Error      0 words      Chapter_14.txt      
+15         ✗ Error      0 words      Chapter_15.txt      
+
+======================================================================
+NOVEL STRUCTURE
+======================================================================
+
+Part 1: The Beginning (Chapters 1-5)
+├─ Chapter 1: Opening Hook
+├─ Chapter 2: Character Introduction
+├─ Chapter 3: Supporting Character
+├─ Chapter 4: Antagonist Introduction
+└─ Chapter 5: Point of No Return
+
+Part 2: The Journey (Chapters 6-10)
+├─ Chapter 6: New Territory
+├─ Chapter 7: Relationship Development
+├─ Chapter 8: Midpoint Twist
+├─ Chapter 9: Darkest Hour
+└─ Chapter 10: Rally
+
+Part 3: The Climax (Chapters 11-15)
+├─ Chapter 11: Final Approach
+├─ Chapter 12: Climax Begins
+├─ Chapter 13: Climax Peak
+├─ Chapter 14: Aftermath
+└─ Chapter 15: Resolution

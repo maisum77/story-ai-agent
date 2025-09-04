@@ -1,0 +1,50 @@
+======================================================================
+NOVEL READING ORDER
+======================================================================
+
+How to Read This Novel:
+------------------------------
+
+Option 1: Read the Complete Novel
+└─ Open: COMPLETE_NOVEL.txt
+   (Contains all chapters in order)
+
+Option 2: Read Individual Chapters
+└─ Read in this order:
+    1. chapters/Chapter_01.txt (1,522 words)
+    2. chapters/Chapter_02.txt (1,105 words)
+    3. chapters/Chapter_03.txt (1,115 words)
+    4. chapters/Chapter_04.txt (1,211 words)
+    5. chapters/Chapter_05.txt (1,009 words)
+    6. chapters/Chapter_06.txt (1,114 words)
+    7. chapters/Chapter_07.txt (ERROR - SKIP)
+    8. chapters/Chapter_08.txt (ERROR - SKIP)
+    9. chapters/Chapter_09.txt (ERROR - SKIP)
+   10. chapters/Chapter_10.txt (ERROR - SKIP)
+   11. chapters/Chapter_11.txt (ERROR - SKIP)
+   12. chapters/Chapter_12.txt (ERROR - SKIP)
+   13. chapters/Chapter_13.txt (ERROR - SKIP)
+   14. chapters/Chapter_14.txt (ERROR - SKIP)
+   15. chapters/Chapter_15.txt (ERROR - SKIP)
+
+======================================================================
+QUICK ACCESS COMMANDS
+======================================================================
+
+To read specific parts:
+
+The Beginning (Chapters 1-5):
+- Chapter 1: chapters/Chapter_01.txt
+- Chapter 2: chapters/Chapter_02.txt
+- Chapter 3: chapters/Chapter_03.txt
+- Chapter 4: chapters/Chapter_04.txt
+- Chapter 5: chapters/Chapter_05.txt
+
+The Journey (Chapters 6-10):
+- Chapter 6: chapters/Chapter_06.txt
+
+The Climax (Chapters 11-15):
+
+
+Total Reading Time Estimate: 28 minutes
+(Based on average reading speed of 250 words per minute)
