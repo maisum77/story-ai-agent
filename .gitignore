@@ -1,3 +1,19 @@
 api.py
 .venv
 __pycache__
+
+# Dependencies
+node_modules/
+.next/
+out/
+dist/
+build/
+
+# Environment variables (NEVER commit these!)
+.env.local
+.env*.local
+.env
+
+# OS files
+.DS_Store
+*.log

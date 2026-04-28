@@ -1,0 +1,240 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap");
+
+:root {
+  --bg: #f6f2e9;
+  --bg-2: #e7dcc8;
+  --surface: rgba(255, 255, 255, 0.78);
+  --ink: #1f1a16;
+  --muted: #5f5448;
+  --accent: #bf4e30;
+  --accent-2: #194f4f;
+  --ring: rgba(191, 78, 48, 0.25);
+  --shadow: 0 22px 55px rgba(30, 20, 10, 0.15);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(191, 78, 48, 0.14), transparent 40%),
+    radial-gradient(circle at 82% 0%, rgba(25, 79, 79, 0.16), transparent 35%),
+    linear-gradient(145deg, var(--bg) 0%, var(--bg-2) 100%);
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.main-wrap {
+  width: min(980px, 92vw);
+  margin: 0 auto;
+  padding: 2.5rem 0 3.5rem;
+  animation: rise-in 0.6s ease-out;
+}
+
+.hero {
+  margin-bottom: 1.4rem;
+}
+
+.eyebrow {
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: var(--accent-2);
+}
+
+.title {
+  margin: 0.4rem 0 0.8rem;
+  font-family: "IBM Plex Serif", serif;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  line-height: 1.05;
+}
+
+.subtitle {
+  max-width: 68ch;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1.4fr 1fr;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid rgba(25, 79, 79, 0.15);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+.compose {
+  padding: 1.1rem;
+}
+
+.auth-panel {
+  margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+}
+
+.auth-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.auth-label {
+  margin-bottom: 0;
+}
+
+.text-input {
+  min-width: min(320px, 100%);
+  flex: 1;
+  border-radius: 12px;
+  border: 1px solid rgba(25, 79, 79, 0.2);
+  padding: 0.62rem 0.75rem;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  font: inherit;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+.label {
+  display: block;
+  font-size: 0.84rem;
+  margin-bottom: 0.45rem;
+  color: var(--muted);
+}
+
+.textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 190px;
+  border-radius: 14px;
+  border: 1px solid rgba(25, 79, 79, 0.2);
+  padding: 0.9rem 0.95rem;
+  font: inherit;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  transition: box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+.controls {
+  margin-top: 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.counter {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.button {
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(95deg, var(--accent) 0%, #9c2f15 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.72rem 1.2rem;
+  cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.2);
+  opacity: 0.7;
+}
+
+.secondary-button {
+  background: rgba(25, 79, 79, 0.95);
+}
+
+.button:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.status {
+  margin-top: 0.8rem;
+  min-height: 1.2rem;
+  font-size: 0.9rem;
+}
+
+.output {
+  padding: 1.2rem;
+}
+
+.output h3 {
+  margin-top: 0;
+  font-family: "IBM Plex Serif", serif;
+  font-size: 1.2rem;
+}
+
+.output pre {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-family: "IBM Plex Serif", serif;
+  font-size: 1rem;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.8rem 0 1.1rem;
+}
+
+.badge {
+  font-size: 0.78rem;
+  border-radius: 999px;
+  border: 1px solid rgba(25, 79, 79, 0.2);
+  background: rgba(255, 255, 255, 0.7);
+  padding: 0.3rem 0.65rem;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .main-wrap {
+    padding-top: 1.8rem;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
