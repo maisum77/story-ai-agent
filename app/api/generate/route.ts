@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { checkIpRateLimit } from "@/lib/rate-limit";
 import { createAnonServerSupabaseClient, createServerSupabaseClient } from "@/lib/supabase";
+import type { UsageQuota } from "@/lib/supabase-types";
 
 export const runtime = "nodejs";
 
@@ -11,11 +12,8 @@ const reqSchema = z.object({
 });
 
 const MAX_FREE_USES = 2;
-
-type UsageQuota = {
-  allowed: boolean;
-  remaining: number;
-};
+const RETRY_ATTEMPTS = 3;
+const RETRY_DELAY = 100;
 
 function getIp(req: NextRequest) {
   const forwarded = req.headers.get("x-forwarded-for");
@@ -59,27 +57,63 @@ function buildPrompt(userPrompt: string) {
   ].join("\n");
 }
 
-async function consumeUsageQuota(usageClient: ReturnType<typeof createServerSupabaseClient>, userId: string): Promise<UsageQuota | null> {
-  const rpcResult = await usageClient.rpc("consume_user_generation", {
-    user_uuid: userId,
-    max_uses: MAX_FREE_USES,
-  });
+async function consumeUsageQuota(
+  usageClient: ReturnType<typeof createServerSupabaseClient>,
+  userId: string
+): Promise<UsageQuota | null> {
+  console.log(`[QUOTA] Checking quota for user: ${userId}`);
 
-  if (!rpcResult.error && rpcResult.data) {
-    const rpcData = rpcResult.data as unknown;
-    if (Array.isArray(rpcData) && rpcData.length > 0) {
-      return rpcData[0] as UsageQuota;
-    }
+  // Try RPC with retry logic
+  for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {
+    try {
+      const rpcResult = await usageClient.rpc("consume_user_generation", {
+        user_uuid: userId,
+        max_uses: MAX_FREE_USES,
+      });
 
-    if (
-      typeof rpcData === "object" &&
-      rpcData !== null &&
-      "allowed" in rpcData &&
-      "remaining" in rpcData
-    ) {
-      return rpcData as UsageQuota;
+      if (rpcResult.error) {
+        console.warn(`[QUOTA] RPC attempt ${attempt} failed:`, rpcResult.error.message);
+        if (attempt < RETRY_ATTEMPTS) {
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY * attempt));
+          continue;
+        }
+        // Fall back to direct queries on final attempt
+        break;
+      }
+
+      if (rpcResult.data) {
+        const rpcData = rpcResult.data;
+        let quota: UsageQuota | null = null;
+
+        // Handle array response
+        if (Array.isArray(rpcData) && rpcData.length > 0) {
+          quota = rpcData[0] as UsageQuota;
+        }
+        // Handle object response
+        else if (
+          typeof rpcData === "object" &&
+          rpcData !== null &&
+          "allowed" in rpcData &&
+          "remaining" in rpcData
+        ) {
+          quota = rpcData as UsageQuota;
+        }
+
+        if (quota) {
+          console.log(`[QUOTA] RPC succeeded: allowed=${quota.allowed}, remaining=${quota.remaining}`);
+          return quota;
+        }
+      }
+    } catch (error) {
+      console.error(`[QUOTA] RPC attempt ${attempt} exception:`, error instanceof Error ? error.message : String(error));
+      if (attempt < RETRY_ATTEMPTS) {
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY * attempt));
+      }
     }
   }
+
+  // Fallback: Direct database queries
+  console.log("[QUOTA] Falling back to direct database queries");
 
   const { data: currentRow, error: selectError } = await usageClient
     .from("user_usage")
@@ -88,34 +122,47 @@ async function consumeUsageQuota(usageClient: ReturnType<typeof createServerSupa
     .maybeSingle();
 
   if (selectError) {
+    console.error("[QUOTA] Select error:", selectError.message);
     return null;
   }
 
   const currentCount = currentRow?.usage_count ?? 0;
+  console.log(`[QUOTA] Current usage count: ${currentCount}`);
+
   if (currentCount >= MAX_FREE_USES) {
+    console.log(`[QUOTA] Quota exhausted for user ${userId}`);
     return {
       allowed: false,
       remaining: 0,
     };
   }
 
+  // User row doesn't exist, create it
   if (!currentRow) {
-    const { error: insertError } = await usageClient.from("user_usage").insert({
-      user_id: userId,
-      usage_count: 1,
-    });
+    console.log(`[QUOTA] Creating new usage record for user ${userId}`);
+    const { error: insertError } = await usageClient
+      .from("user_usage")
+      .insert({
+        user_id: userId,
+        usage_count: 1,
+      });
 
     if (insertError) {
+      console.error("[QUOTA] Insert error:", insertError.message);
       return null;
     }
 
+    console.log(`[QUOTA] User record created, remaining quota: ${MAX_FREE_USES - 1}`);
     return {
       allowed: true,
       remaining: MAX_FREE_USES - 1,
     };
   }
 
+  // Update existing record
   const nextCount = currentCount + 1;
+  console.log(`[QUOTA] Incrementing usage from ${currentCount} to ${nextCount}`);
+
   const { error: updateError } = await usageClient
     .from("user_usage")
     .update({
@@ -125,12 +172,16 @@ async function consumeUsageQuota(usageClient: ReturnType<typeof createServerSupa
     .eq("user_id", userId);
 
   if (updateError) {
+    console.error("[QUOTA] Update error:", updateError.message);
     return null;
   }
 
+  const remaining = Math.max(MAX_FREE_USES - nextCount, 0);
+  console.log(`[QUOTA] Usage updated successfully, remaining quota: ${remaining}`);
+
   return {
     allowed: true,
-    remaining: Math.max(MAX_FREE_USES - nextCount, 0),
+    remaining,
   };
 }
 
@@ -177,29 +228,37 @@ export async function POST(req: NextRequest) {
   try {
     authClient = createAnonServerSupabaseClient();
     usageClient = createServerSupabaseClient();
-  } catch {
+  } catch (error) {
+    console.error("[AUTH] Supabase client initialization failed:", error instanceof Error ? error.message : String(error));
     return NextResponse.json(
-      { error: "Supabase server configuration is missing." },
+      { error: "Server configuration error. Unable to initialize database client." },
       { status: 500 },
     );
   }
 
+  console.log(`[AUTH] Validating token for user`);
   const { data: userData, error: userError } = await authClient.auth.getUser(token);
   if (userError || !userData.user) {
+    console.warn("[AUTH] Token validation failed:", userError?.message || "No user data");
     return NextResponse.json(
       { error: "Invalid or expired session. Please sign in again." },
       { status: 401 },
     );
   }
 
-  const quota = await consumeUsageQuota(usageClient, userData.user.id);
+  const userId = userData.user.id;
+  console.log(`[AUTH] Token validated for user: ${userId}`);
+
+  const quota = await consumeUsageQuota(usageClient, userId);
   if (!quota) {
+    console.error(`[API] Failed to check quota for user ${userId}`);
     return NextResponse.json(
       { error: "Could not verify usage quota. Please retry." },
       { status: 500 },
     );
   }
   if (!quota.allowed) {
+    console.log(`[API] Quota exhausted for user ${userId}`);
     return NextResponse.json(
       {
         error: "Free usage limit reached for this account.",
@@ -210,6 +269,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    console.log(`[OPENAI] Initiating story generation for user: ${userId}`);
+    
     const client = new OpenAI({
       apiKey,
       baseURL: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
@@ -231,11 +292,14 @@ export async function POST(req: NextRequest) {
     const text = response.choices[0]?.message?.content?.trim() || "";
 
     if (!text) {
+      console.error(`[OPENAI] Empty response from model for user: ${userId}`);
       return NextResponse.json(
         { error: "The model returned an empty response. Please retry." },
         { status: 502 },
       );
     }
+
+    console.log(`[OPENAI] Story generated successfully for user: ${userId} (${text.length} characters)`);
 
     return NextResponse.json(
       {
@@ -245,7 +309,10 @@ export async function POST(req: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Generation error:", error instanceof Error ? error.message : String(error));
+    console.error(
+      `[OPENAI] Generation failed for user ${userId}:`,
+      error instanceof Error ? error.message : String(error)
+    );
     return NextResponse.json(
       { error: "Generation failed. Please try again shortly." },
       { status: 500 },

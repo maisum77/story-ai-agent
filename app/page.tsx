@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { createClient } from "@/utils/supabase/client";
+import { createBrowserSupabaseClient } from "@/lib/supabase";
 
 type ApiResponse = {
   text?: string;
@@ -13,7 +13,7 @@ type ApiResponse = {
 const MAX_INPUT = 1200;
 
 export default function HomePage() {
-  const [supabase] = useState(() => createClient());
+  const [supabase] = useState(() => createBrowserSupabaseClient());
   const [email, setEmail] = useState("");
   const [session, setSession] = useState<Session | null>(null);
   const [authStatus, setAuthStatus] = useState("");
@@ -25,8 +25,13 @@ export default function HomePage() {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
 
   useEffect(() => {
+    console.log("client env:", {
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ? "✓ set" : "✗ missing",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ? "✓ set" : "✗ missing",
+    });
+    console.log("supabase client (from createBrowserSupabaseClient):", supabase);
     if (!supabase) {
-      setAuthStatus("Supabase env vars are missing. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+      setAuthStatus("Supabase env vars are missing. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.");
       return;
     }
 
@@ -56,7 +61,7 @@ export default function HomePage() {
 
   async function onSendMagicLink() {
     if (!supabase) {
-      setAuthStatus("Supabase is not configured in environment variables.");
+      setAuthStatus("Supabase is not configured in environment variables. Please check your .env.local file.");
       return;
     }
 
@@ -66,42 +71,108 @@ export default function HomePage() {
       return;
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalized)) {
+      setAuthStatus("Please enter a valid email address.");
+      return;
+    }
+
     setIsAuthLoading(true);
     setAuthStatus("Sending magic link...");
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: normalized,
-      options: {
-        emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
-      },
-    });
+    try {
+      // Get the current origin including port
+      const currentOrigin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+      
+      // Check if we're running on a different port (like 3001)
+      const redirectTo = `${currentOrigin}/auth/callback`;
+      console.log("Magic link redirect URL:", redirectTo);
+      
+      const { error } = await supabase.auth.signInWithOtp({
+        email: normalized,
+        options: {
+          emailRedirectTo: redirectTo,
+          shouldCreateUser: true, // Allow new users to sign up
+        },
+      });
 
-    if (error) {
-      setAuthStatus(error.message);
-    } else {
-      setAuthStatus("Check your inbox and open the magic link to sign in.");
+      if (error) {
+        console.error("Magic link error:", error);
+        
+        // Provide more user-friendly error messages
+        if (error.message.includes("Email rate limit exceeded") || error.code === "over_email_send_rate_limit") {
+          setAuthStatus("Too many attempts. Please wait a few minutes before trying again.");
+        } else if (error.message.includes("Email provider not configured")) {
+          setAuthStatus("Email authentication is not configured. Please check Supabase project settings.");
+        } else if (error.message.includes("redirect_to") || error.code === "redirect_to_not_allowed") {
+          setAuthStatus("Redirect URL not configured. Please add this URL to Supabase authentication settings: " +
+            (typeof window !== "undefined" ? window.location.origin : ""));
+        } else if (error.message.includes("email address is invalid") || error.code === "email_address_invalid") {
+          setAuthStatus("Please enter a valid email address. Test emails like 'test@example.com' are not allowed.");
+        } else if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError") || error.name === "TypeError") {
+          setAuthStatus("Network error. Please check your internet connection and try again. If using a local development server, make sure CORS is configured in Supabase.");
+        } else {
+          setAuthStatus(`Failed to send magic link: ${error.message}`);
+        }
+      } else {
+        setAuthStatus("✅ Magic link sent! Check your email and click the link to sign in.");
+        // Clear email field after successful send
+        setEmail("");
+      }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      if (err instanceof Error && err.message.includes("Failed to fetch")) {
+        setAuthStatus("Network error: Cannot connect to Supabase. Please check your internet connection and Supabase project configuration.");
+      } else {
+        setAuthStatus("An unexpected error occurred. Please try again.");
+      }
+    } finally {
+      setIsAuthLoading(false);
     }
-    setIsAuthLoading(false);
   }
 
   async function onSignInWithGoogle() {
     if (!supabase) {
-      setAuthStatus("Supabase is not configured in environment variables.");
+      setAuthStatus("Supabase is not configured in environment variables. Please check your .env.local file.");
       return;
     }
 
     setIsAuthLoading(true);
     setAuthStatus("Redirecting to Google...");
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
-      },
-    });
+    try {
+      // Get the current origin including port
+      const currentOrigin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+      
+      // Check if we're running on a different port (like 3001)
+      const redirectTo = `${currentOrigin}/auth/callback`;
+      console.log("Google OAuth redirect URL:", redirectTo);
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: redirectTo,
+        },
+      });
 
-    if (error) {
-      setAuthStatus(error.message);
+      if (error) {
+        console.error("Google OAuth error:", error);
+        
+        // Provide more user-friendly error messages
+        if (error.message.includes("OAuth provider not configured")) {
+          setAuthStatus("Google OAuth is not configured. Please check Supabase project settings.");
+        } else if (error.message.includes("redirect_to")) {
+          setAuthStatus("Redirect URL not configured. Please add this URL to Supabase authentication settings: " +
+            (typeof window !== "undefined" ? window.location.origin : ""));
+        } else {
+          setAuthStatus(`Failed to sign in with Google: ${error.message}`);
+        }
+      }
+      // Note: If successful, the user will be redirected away from the page
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      setAuthStatus("An unexpected error occurred. Please try again.");
       setIsAuthLoading(false);
     }
   }
@@ -214,7 +285,8 @@ export default function HomePage() {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value.slice(0, MAX_INPUT))}
             className="textarea"
-            placeholder="Example: A memory thief in a rain-soaked market discovers a vial containing her own forgotten childhood memory..."
+            placeholder={session ? "Example: A memory thief in a rain-soaked market discovers a vial containing her own forgotten childhood memory..." : "Please sign in first to write your novel prompt"}
+            disabled={!session}
           />
 
           <div className="controls">
