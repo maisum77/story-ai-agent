@@ -17,3 +17,5 @@ build/
 # OS files
 .DS_Store
 *.log
+
+test-supabase-config.js
